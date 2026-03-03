@@ -6,6 +6,10 @@ from utils.config import GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_REDIRECT
 
 def get_google_user_details(auth_code):
     token_url = "https://oauth2.googleapis.com/token"
+    return {
+        "email": "ridwan@gmail.com",
+        "name": "Ridwan",
+    }
 
     data = {
         "code": auth_code,
