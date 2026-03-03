@@ -2,8 +2,13 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 
-from api import auth, user
+from api import auth, cv_feedback, user, user_token
 from fastapi import FastAPI
+
+# Register Model
+from models.user import User
+from models.user_token import UserToken
+from models.cv_feedback import CVFeedback
 
 from db.database import Base, engine
 from utils.config import CORS_ORIGINS
@@ -30,3 +35,5 @@ async def root():
 
 app.include_router(auth.router)
 app.include_router(user.router)
+app.include_router(user_token.router)
+app.include_router(cv_feedback.router)
