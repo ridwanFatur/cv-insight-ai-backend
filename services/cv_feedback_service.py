@@ -7,7 +7,10 @@ import uuid
 from models.user_token import UserToken
 from utils.config import GOOGLE_BUCKET_NAME, PROJECT_ID
 from datetime import timedelta
-from openai import OpenAI
+from vertexai.generative_models import GenerativeModel, Part, GenerationConfig
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 def get_cv_detail(
@@ -26,7 +29,7 @@ def get_cv_detail(
             detail="CV not found"
         )
 
-    print("CV with ID existed")
+    logger.info("CV with ID existed")
 
     prefix = f"https://storage.googleapis.com/{GOOGLE_BUCKET_NAME}/"
 
@@ -107,47 +110,11 @@ def upload_cv_and_create_feedback(
             detail="Out of token"
         )
 
-    print("Process Upload CV")
-
-    # Call Open AI
-    print("Process Upload CV - OpenAI")
-
-    openai_client = OpenAI()
-    print("Process Upload CV - OpenAI - Upload File")
-    openai_file = openai_client.files.create(
-        file=(file.filename, file.file, file.content_type),
-        purpose="assistants"
-    )
-
-    print("Process Upload CV - OpenAI - Generate Feedback")
-    response = openai_client.responses.create(
-        model="gpt-4.1-mini",
-        max_output_tokens=500,
-        input=[{
-            "role": "user",
-            "content": [
-                {
-                    "type": "input_text",
-                    "text": (
-                        "Please review the attached file and determine whether it is a CV/resume. "
-                        "If it is a CV, provide detailed and constructive suggestions on what can be improved "
-                        "(e.g., structure, clarity, formatting, wording, achievements, skills section, consistency, etc.). "
-                        "Match the language of your response to the primary language used in the CV. "
-                        "If the uploaded file is NOT a CV/resume, clearly state that this application is only intended for CV review."
-                    )
-                },
-                {
-                    "type": "input_file",
-                    "file_id": openai_file.id,
-                },
-            ],
-        }],
-    )
-    feedback = response.output_text
+    logger.info("Process Upload CV")
 
     # Upload to GCS
+    logger.info("Process Upload CV to GCS")
     file.file.seek(0)
-    print("Process Upload CV - GCS")
 
     client = storage.Client(project=PROJECT_ID)
     bucket = client.bucket(GOOGLE_BUCKET_NAME)
@@ -162,6 +129,31 @@ def upload_cv_and_create_feedback(
         content_type=file.content_type,
     )
     file_url = f"https://storage.googleapis.com/{GOOGLE_BUCKET_NAME}/{unique_filename}"
+
+    # Use Gemini
+    logger.info("Process Analsys by Gemini")
+    model = GenerativeModel("gemini-2.5-flash")
+    gcs_uri = f"gs://{GOOGLE_BUCKET_NAME}/{unique_filename}"
+    pdf_file = Part.from_uri(
+        uri=gcs_uri,
+        mime_type="application/pdf"
+    )
+    prompt = """
+			Please review the attached file and determine whether it is a CV/resume. 
+			If it is a CV, provide detailed and constructive suggestions on what can be improved 
+			(e.g., structure, clarity, formatting, wording, achievements, skills section, consistency, etc.). 
+			Match the language of your response to the primary language used in the CV. 
+			If the uploaded file is NOT a CV/resume, clearly state that this application is only intended for CV review.
+    """
+    config = GenerationConfig(
+        temperature=0.7,
+        max_output_tokens=500
+    )
+    response = model.generate_content(
+        [pdf_file, prompt],
+        generation_config=config
+    )
+    feedback = response.text
 
     # Save on DB
     cv_feedback = CVFeedback(

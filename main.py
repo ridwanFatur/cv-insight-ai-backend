@@ -12,11 +12,16 @@ from models.cv_feedback import CVFeedback
 
 from db.database import Base, engine
 from utils.config import CORS_ORIGINS
-
+import logging
 
 app = FastAPI(title="CV Insight AI",
               version="1.0.0", redirect_slashes=False)
 
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+)
 
 Base.metadata.create_all(bind=engine)
 
