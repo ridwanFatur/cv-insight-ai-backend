@@ -6,7 +6,7 @@ from utils.config import POSTGRES_DB, POSTGRES_HOST, POSTGRES_PASSWORD, POSTGRES
 DATABASE_URL = f"postgresql+psycopg2://{POSTGRES_USER}:{POSTGRES_PASSWORD}@{POSTGRES_HOST}:{POSTGRES_PORT}/{POSTGRES_DB}"
 
 engine = create_engine(
-    DATABASE_URL, connect_args={"check_same_thread": False}
+    DATABASE_URL
 )
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
