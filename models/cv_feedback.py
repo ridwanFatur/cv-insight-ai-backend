@@ -12,6 +12,7 @@ class CVFeedback(Base):
     user_id = Column(Integer, ForeignKey("users.id"))
     file_link = Column(String, nullable=False)
     feedback = Column(Text, nullable=True)
+    status = Column(String, default="loading", nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     user = relationship("User", back_populates="cv_feedbacks")
