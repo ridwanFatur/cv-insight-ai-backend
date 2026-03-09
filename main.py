@@ -4,11 +4,37 @@ from fastapi.middleware.cors import CORSMiddleware
 from api import auth, cv_feedback, user, user_token
 from fastapi import FastAPI
 
+from rabbitmq.constants import CV_REVIEW_RESULTS
+from rabbitmq.consumer.cv_review_consumer import cv_review_callback
 from utils.config import CORS_ORIGINS
 import logging
+from contextlib import asynccontextmanager
+import threading
+from rabbitmq.client import mq_channel_client
 
-app = FastAPI(title="CV Insight AI",
-              version="1.0.0", redirect_slashes=False)
+
+def app_consumer():
+    mq_channel_client.basic_qos(prefetch_count=1)
+    mq_channel_client.basic_consume(
+        queue=CV_REVIEW_RESULTS,
+        on_message_callback=cv_review_callback,
+    )
+
+    mq_channel_client.start_consuming()
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    thread = threading.Thread(target=app_consumer, daemon=True)
+    thread.start()
+    print("Start Consuming")
+    yield
+
+app = FastAPI(
+    title="CV Insight AI",
+    version="1.0.0", redirect_slashes=False,
+    lifespan=lifespan
+)
 
 
 logging.basicConfig(
