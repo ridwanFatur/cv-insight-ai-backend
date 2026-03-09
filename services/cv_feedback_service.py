@@ -1,3 +1,5 @@
+import hashlib
+
 from sqlalchemy.orm import Session
 from sqlalchemy import desc
 from models.cv_feedback import CVFeedback
@@ -88,7 +90,7 @@ def get_cv_feedback(
     }
 
 
-def upload_cv_to_gcs(
+def submit_cv_for_review(
     db: Session,
     user_id: int,
     file: UploadFile,
@@ -96,26 +98,44 @@ def upload_cv_to_gcs(
     logger.info("Process Upload CV to GCS")
     file.file.seek(0)
 
-    client = storage.Client(project=PROJECT_ID)
-    bucket = client.bucket(GOOGLE_BUCKET_NAME)
+    file_bytes = file.file.read()
+    file_hash = hashlib.sha256(file_bytes).hexdigest()
 
-    file_extension = file.filename.split(".")[-1]
-    unique_filename = f"cv/{user_id}/{uuid.uuid4()}.{file_extension}"
-
-    blob = bucket.blob(unique_filename)
-
-    blob.upload_from_file(
-        file.file,
-        content_type=file.content_type,
+    file.file.seek(0)
+    existing = (
+        db.query(CVFeedback)
+        .filter(CVFeedback.file_hash == file_hash)
+        .first()
     )
-    file_url = f"https://storage.googleapis.com/{GOOGLE_BUCKET_NAME}/{unique_filename}"
+    if existing:
+        logger.info("File already exists, reuse link")
+        file_url = existing.file_link
+    else:
+        logger.info("Uploading new file to GCS")
+
+        client = storage.Client(project=PROJECT_ID)
+        bucket = client.bucket(GOOGLE_BUCKET_NAME)
+
+        file_extension = file.filename.split(".")[-1]
+        unique_filename = f"cv/{user_id}/{uuid.uuid4()}.{file_extension}"
+
+        blob = bucket.blob(unique_filename)
+
+        blob.upload_from_file(
+            file.file,
+            content_type=file.content_type,
+        )
+        file_url = f"https://storage.googleapis.com/{GOOGLE_BUCKET_NAME}/{unique_filename}"
 
     # Save on DB
     cv_feedback = CVFeedback(
         user_id=user_id,
         file_link=file_url,
+        file_hash=file_hash,
+        status="loading"
     )
     db.add(cv_feedback)
     db.commit()
     db.refresh(cv_feedback)
+
     cv_review_publish(cv_feedback.id)

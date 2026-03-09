@@ -1,7 +1,7 @@
 from fastapi import APIRouter, UploadFile, File, Depends, Request
 from db.database import get_db
 from dependencies.auth_middleware import get_current_user_id
-from services.cv_feedback_service import get_cv_detail, get_cv_feedback, upload_cv_to_gcs
+from services.cv_feedback_service import get_cv_detail, get_cv_feedback, submit_cv_for_review
 from sqlalchemy.orm import Session
 from functools import partial
 
@@ -52,7 +52,7 @@ def upload_cv(
     remaining_tokens = consume_user_token_credit(
         db,
         user_id,
-        partial(upload_cv_to_gcs, db, user_id, file)
+        partial(submit_cv_for_review, db, user_id, file)
     )
     return {
         "remaining_tokens": remaining_tokens
