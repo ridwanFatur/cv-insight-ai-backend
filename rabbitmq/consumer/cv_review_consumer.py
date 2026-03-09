@@ -6,6 +6,6 @@ logger = logging.getLogger(__name__)
 
 def cv_review_callback(ch, method, properties, body):
     data = json.loads(body)
-    logger.info("Received:", data)
+    logger.info(f"Received: {data}")
 
     ch.basic_ack(delivery_tag=method.delivery_tag)
