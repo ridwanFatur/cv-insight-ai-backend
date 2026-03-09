@@ -9,3 +9,14 @@ connection = pika.BlockingConnection(params)
 mq_channel_publisher = connection.channel()
 
 mq_channel_publisher.queue_declare(queue=CV_REVIEW_TASKS, durable=True)
+
+
+def get_mq_channel_publisher():
+    global connection
+    global mq_channel_publisher
+
+    if connection.is_closed:
+        connection = pika.BlockingConnection(params)
+        mq_channel_publisher = connection.channel()
+
+    return mq_channel_publisher
