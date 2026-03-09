@@ -1,16 +1,9 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-
 from api import auth, cv_feedback, user, user_token
 from fastapi import FastAPI
 
-# Register Model
-from models.user import User
-from models.user_token import UserToken
-from models.cv_feedback import CVFeedback
-
-from db.database import Base, engine
 from utils.config import CORS_ORIGINS
 import logging
 
@@ -22,8 +15,6 @@ logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
 )
-
-Base.metadata.create_all(bind=engine)
 
 app.add_middleware(
     CORSMiddleware,
