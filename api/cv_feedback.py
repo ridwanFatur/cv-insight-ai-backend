@@ -1,8 +1,11 @@
 from fastapi import APIRouter, UploadFile, File, Depends, Request
 from db.database import get_db
 from dependencies.auth_middleware import get_current_user_id
-from services.cv_feedback_service import get_cv_detail, get_cv_feedback, upload_cv_and_create_feedback
+from services.cv_feedback_service import get_cv_detail, get_cv_feedback, upload_cv_to_gcs
 from sqlalchemy.orm import Session
+from functools import partial
+
+from services.user_token_service import consume_user_token_credit
 
 router = APIRouter(
     prefix="/api/cv-feedback",
@@ -45,12 +48,12 @@ def upload_cv(
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
 ):
-    cv_feedback, total_tokens = upload_cv_and_create_feedback(
-        db=db,
-        user_id=request.state.user_id,
-        file=file,
+    user_id = request.state.user_id
+    remaining_tokens = consume_user_token_credit(
+        db,
+        user_id,
+        partial(upload_cv_to_gcs, db, user_id, file)
     )
     return {
-        "cv_feedback": cv_feedback,
-        "remaining_tokens": total_tokens
+        "remaining_tokens": remaining_tokens
     }

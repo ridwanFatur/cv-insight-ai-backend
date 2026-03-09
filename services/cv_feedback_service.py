@@ -4,10 +4,9 @@ from models.cv_feedback import CVFeedback
 from fastapi import HTTPException, UploadFile
 from google.cloud import storage
 import uuid
-from models.user_token import UserToken
+from rabbitmq.publisher.cv_review_publisher import cv_review_publish
 from utils.config import GOOGLE_BUCKET_NAME, PROJECT_ID
 from datetime import timedelta
-from vertexai.generative_models import GenerativeModel, Part, GenerationConfig
 import logging
 
 logger = logging.getLogger(__name__)
@@ -89,30 +88,11 @@ def get_cv_feedback(
     }
 
 
-def upload_cv_and_create_feedback(
+def upload_cv_to_gcs(
     db: Session,
     user_id: int,
     file: UploadFile,
 ):
-    user_token = db.query(UserToken).filter(
-        UserToken.user_id == user_id
-    ).first()
-
-    if not user_token:
-        raise HTTPException(
-            status_code=404,
-            detail="User token not found"
-        )
-
-    if user_token.total_tokens <= 0:
-        raise HTTPException(
-            status_code=400,
-            detail="Out of token"
-        )
-
-    logger.info("Process Upload CV")
-
-    # Upload to GCS
     logger.info("Process Upload CV to GCS")
     file.file.seek(0)
 
@@ -130,43 +110,12 @@ def upload_cv_and_create_feedback(
     )
     file_url = f"https://storage.googleapis.com/{GOOGLE_BUCKET_NAME}/{unique_filename}"
 
-    # Use Gemini
-    logger.info("Process Analsys by Gemini")
-    model = GenerativeModel("gemini-2.5-flash")
-    gcs_uri = f"gs://{GOOGLE_BUCKET_NAME}/{unique_filename}"
-    pdf_file = Part.from_uri(
-        uri=gcs_uri,
-        mime_type="application/pdf"
-    )
-    prompt = """
-			Please review the attached file and determine whether it is a CV/resume. 
-			If it is a CV, provide detailed and constructive suggestions on what can be improved 
-			(e.g., structure, clarity, formatting, wording, achievements, skills section, consistency, etc.). 
-			Match the language of your response to the primary language used in the CV. 
-			If the uploaded file is NOT a CV/resume, clearly state that this application is only intended for CV review.
-    """
-    config = GenerationConfig(
-        temperature=0.7,
-        max_output_tokens=500
-    )
-    response = model.generate_content(
-        [pdf_file, prompt],
-        generation_config=config
-    )
-    feedback = response.text
-
     # Save on DB
     cv_feedback = CVFeedback(
         user_id=user_id,
         file_link=file_url,
-        feedback=feedback,
     )
-
     db.add(cv_feedback)
-    user_token.total_tokens -= 1
-
     db.commit()
     db.refresh(cv_feedback)
-    db.refresh(user_token)
-
-    return cv_feedback, user_token.total_tokens
+    cv_review_publish(cv_feedback.id)

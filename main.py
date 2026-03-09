@@ -10,7 +10,7 @@ from utils.config import CORS_ORIGINS
 import logging
 from contextlib import asynccontextmanager
 import threading
-from rabbitmq.client import mq_channel_client
+from rabbitmq.channel_client import mq_channel_client
 
 
 def app_consumer():
