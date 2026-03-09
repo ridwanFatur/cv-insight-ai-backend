@@ -1,8 +1,11 @@
 import json
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 def cv_review_callback(ch, method, properties, body):
     data = json.loads(body)
-    print("Received:", data)
+    logger.info("Received:", data)
 
     ch.basic_ack(delivery_tag=method.delivery_tag)
