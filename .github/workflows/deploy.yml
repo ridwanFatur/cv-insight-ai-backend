@@ -36,13 +36,13 @@ jobs:
 
       - name: Build Docker image
         run: |
-          IMAGE_NAME=us-central1-docker.pkg.dev/ridwan-faturrahman/api-cvinsight-repo/api-cvinsight-app
+          IMAGE_NAME=us-central1-docker.pkg.dev/ridwan-faturrahman/cvinsight-repo/api-cvinsight-app
           IMAGE_TAG=${GITHUB_SHA::7}
           docker build -t $IMAGE_NAME:latest -t $IMAGE_NAME:$IMAGE_TAG .
 
       - name: Push Docker image
         run: |
-          IMAGE_NAME=us-central1-docker.pkg.dev/ridwan-faturrahman/api-cvinsight-repo/api-cvinsight-app
+          IMAGE_NAME=us-central1-docker.pkg.dev/ridwan-faturrahman/cvinsight-repo/api-cvinsight-app
           IMAGE_TAG=${GITHUB_SHA::7}
           docker push $IMAGE_NAME:latest
           docker push $IMAGE_NAME:$IMAGE_TAG
@@ -51,19 +51,23 @@ jobs:
         run: |          
           ssh ${{ secrets.VM_USER }}@${{ secrets.VM_IP }} << 'EOF'
             gcloud auth configure-docker us-central1-docker.pkg.dev --quiet
-            docker pull us-central1-docker.pkg.dev/ridwan-faturrahman/api-cvinsight-repo/api-cvinsight-app:latest
+            docker pull us-central1-docker.pkg.dev/ridwan-faturrahman/cvinsight-repo/api-cvinsight-app:latest
 
-            gcloud secrets versions access latest --secret="CVINSIGHT_AI_BACKEND_ENV" > .env.fastapi
+            gcloud secrets versions access latest --secret="CVINSIGHT_AI_BACKEND_ENV" > env.backend.prod
+            gcloud secrets versions access latest --secret="CVINSIGHT_AI_DATABASE_ENV" > env.db.prod
+            gcloud secrets versions access latest --secret="CVINSIGHT_AI_RABBITMQ_ENV" > env.rabbitmq.prod
+
+            set -a
+            source env.db.prod
+            set +a
             
-            docker stop api-cvinsight-app || true
-            docker remove api-cvinsight-app || true
-            
-            docker run -d \
-              --name api-cvinsight-app \
-              --restart always \
-              -p 8000:8000 \
-              --env-file .env.fastapi \
-              us-central1-docker.pkg.dev/ridwan-faturrahman/api-cvinsight-repo/api-cvinsight-app:latest
-            rm -f .env.fastapi
-            docker images -f "dangling=true" -q us-central1-docker.pkg.dev/ridwan-faturrahman/api-cvinsight-repo/api-cvinsight-app | xargs -r docker rmi
+            docker compose stop api-cvinsight
+            docker compose rm -f api-cvinsight
+            docker compose up -d api-cvinsight
+
+            rm -f env.backend.prod
+            rm -f env.db.prod
+            rm -f env.rabbitmq.prod
+
+            docker images -f "dangling=true" -q us-central1-docker.pkg.dev/ridwan-faturrahman/cvinsight-repo/api-cvinsight-app | xargs -r docker rmi
           EOF
