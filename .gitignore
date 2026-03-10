@@ -8,3 +8,4 @@ __pycache__/
 .vscode/
 docker-compose.yml
 commands/
+service_account.json

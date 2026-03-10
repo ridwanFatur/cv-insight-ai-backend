@@ -39,16 +39,23 @@ def get_cv_detail(
             status_code=400,
             detail="Invalid file link"
         )
-    object_name = cv.file_link.replace(prefix, "")
+    try:
+        object_name = cv.file_link.replace(prefix, "")
+        client = storage.Client(project=PROJECT_ID)
+        bucket = client.bucket(GOOGLE_BUCKET_NAME)
+        blob = bucket.blob(object_name)
+        signed_url = blob.generate_signed_url(
+            version="v4",
+            expiration=timedelta(minutes=15),
+            method="GET",
+        )
 
-    client = storage.Client(project=PROJECT_ID)
-    bucket = client.bucket(GOOGLE_BUCKET_NAME)
-    blob = bucket.blob(object_name)
-    signed_url = blob.generate_signed_url(
-        version="v4",
-        expiration=timedelta(minutes=15),
-        method="GET",
-    )
+    except:
+        raise HTTPException(
+            status_code=500,
+            detail="Something went wrong"
+        )
+
     return {
         "cv_feedback": cv,
         "download_url": signed_url
