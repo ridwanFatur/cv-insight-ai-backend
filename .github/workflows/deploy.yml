@@ -34,25 +34,25 @@ jobs:
       - name: Configure Docker for Artifact Registry
         run: gcloud auth configure-docker us-central1-docker.pkg.dev
 
-      # - name: Build Docker image
-      #   run: |
-      #     IMAGE_NAME=us-central1-docker.pkg.dev/ridwan-faturrahman/cvinsight-repo/api-cvinsight-app
-      #     IMAGE_TAG=${GITHUB_SHA::7}
-      #     docker build -t $IMAGE_NAME:latest -t $IMAGE_NAME:$IMAGE_TAG .
+      - name: Build Docker image
+        run: |
+          IMAGE_NAME=us-central1-docker.pkg.dev/ridwan-faturrahman/cvinsight-repo/api-cvinsight-app
+          IMAGE_TAG=${GITHUB_SHA::7}
+          docker build -t $IMAGE_NAME:latest -t $IMAGE_NAME:$IMAGE_TAG .
 
-      # - name: Push Docker image
-      #   run: |
-      #     IMAGE_NAME=us-central1-docker.pkg.dev/ridwan-faturrahman/cvinsight-repo/api-cvinsight-app
-      #     IMAGE_TAG=${GITHUB_SHA::7}
-      #     docker push $IMAGE_NAME:latest
-      #     docker push $IMAGE_NAME:$IMAGE_TAG
+      - name: Push Docker image
+        run: |
+          IMAGE_NAME=us-central1-docker.pkg.dev/ridwan-faturrahman/cvinsight-repo/api-cvinsight-app
+          IMAGE_TAG=${GITHUB_SHA::7}
+          docker push $IMAGE_NAME:latest
+          docker push $IMAGE_NAME:$IMAGE_TAG
 
-      # - name: VM Pull Docker Image
-      #   run: |          
-      #     ssh ${{ secrets.VM_USER }}@${{ secrets.VM_IP }} << 'EOF'
-      #       gcloud auth configure-docker us-central1-docker.pkg.dev --quiet
-      #       docker pull us-central1-docker.pkg.dev/ridwan-faturrahman/cvinsight-repo/api-cvinsight-app:latest
-      #     EOF
+      - name: VM Pull Docker Image
+        run: |          
+          ssh ${{ secrets.VM_USER }}@${{ secrets.VM_IP }} << 'EOF'
+            gcloud auth configure-docker us-central1-docker.pkg.dev --quiet
+            docker pull us-central1-docker.pkg.dev/ridwan-faturrahman/cvinsight-repo/api-cvinsight-app:latest
+          EOF
 
       - name: Set Env
         run: |          
@@ -73,6 +73,7 @@ jobs:
             docker-compose stop api-cvinsight
             docker-compose rm -f api-cvinsight
             docker-compose up -d api-cvinsight
+            docker-compose up db-cvinsight-migration
           EOF
 
       - name: Clean
