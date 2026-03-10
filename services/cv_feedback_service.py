@@ -138,4 +138,4 @@ def submit_cv_for_review(
     db.commit()
     db.refresh(cv_feedback)
 
-    cv_review_publish(cv_feedback.id)
+    cv_review_publish(cv_feedback.id, user_id)
