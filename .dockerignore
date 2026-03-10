@@ -12,3 +12,4 @@ Note.txt
 Dockerfile
 docker-compose.yml
 app.db
+commands/
