@@ -11,6 +11,7 @@ import logging
 from contextlib import asynccontextmanager
 import threading
 from rabbitmq.channel_client import mq_channel_client
+from ws import cv_result
 
 
 def app_consumer():
@@ -59,3 +60,4 @@ app.include_router(auth.router)
 app.include_router(user.router)
 app.include_router(user_token.router)
 app.include_router(cv_feedback.router)
+app.include_router(cv_result.router)
