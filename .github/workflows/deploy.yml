@@ -69,9 +69,9 @@ jobs:
       - name: Docker Compose
         run: |          
           ssh ${{ secrets.VM_USER }}@${{ secrets.VM_IP }} << 'EOF'
-            docker compose stop api-cvinsight
-            docker compose rm -f api-cvinsight
-            docker compose up -d api-cvinsight
+            docker-compose stop api-cvinsight
+            docker-compose rm -f api-cvinsight
+            docker-compose up -d api-cvinsight
           EOF
 
       - name: Clean
