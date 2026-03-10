@@ -47,12 +47,16 @@ jobs:
           docker push $IMAGE_NAME:latest
           docker push $IMAGE_NAME:$IMAGE_TAG
 
-      - name: Deploy to GCE VM
+      - name: VM Pull Docker Image
         run: |          
           ssh ${{ secrets.VM_USER }}@${{ secrets.VM_IP }} << 'EOF'
             gcloud auth configure-docker us-central1-docker.pkg.dev --quiet
             docker pull us-central1-docker.pkg.dev/ridwan-faturrahman/cvinsight-repo/api-cvinsight-app:latest
+          EOF
 
+      - name: Set Env
+        run: |          
+          ssh ${{ secrets.VM_USER }}@${{ secrets.VM_IP }} << 'EOF'
             gcloud secrets versions access latest --secret="CVINSIGHT_AI_BACKEND_ENV" > env.backend.prod
             gcloud secrets versions access latest --secret="CVINSIGHT_AI_DATABASE_ENV" > env.db.prod
             gcloud secrets versions access latest --secret="CVINSIGHT_AI_RABBITMQ_ENV" > env.rabbitmq.prod
@@ -60,11 +64,19 @@ jobs:
             set -a
             source env.db.prod
             set +a
-            
+          EOF
+
+      - name: Docker Compose
+        run: |          
+          ssh ${{ secrets.VM_USER }}@${{ secrets.VM_IP }} << 'EOF'
             docker compose stop api-cvinsight
             docker compose rm -f api-cvinsight
             docker compose up -d api-cvinsight
+          EOF
 
+      - name: Clean
+        run: |          
+          ssh ${{ secrets.VM_USER }}@${{ secrets.VM_IP }} << 'EOF'
             rm -f env.backend.prod
             rm -f env.db.prod
             rm -f env.rabbitmq.prod
