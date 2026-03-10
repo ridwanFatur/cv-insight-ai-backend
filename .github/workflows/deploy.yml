@@ -34,25 +34,25 @@ jobs:
       - name: Configure Docker for Artifact Registry
         run: gcloud auth configure-docker us-central1-docker.pkg.dev
 
-      - name: Build Docker image
-        run: |
-          IMAGE_NAME=us-central1-docker.pkg.dev/ridwan-faturrahman/cvinsight-repo/api-cvinsight-app
-          IMAGE_TAG=${GITHUB_SHA::7}
-          docker build -t $IMAGE_NAME:latest -t $IMAGE_NAME:$IMAGE_TAG .
+      # - name: Build Docker image
+      #   run: |
+      #     IMAGE_NAME=us-central1-docker.pkg.dev/ridwan-faturrahman/cvinsight-repo/api-cvinsight-app
+      #     IMAGE_TAG=${GITHUB_SHA::7}
+      #     docker build -t $IMAGE_NAME:latest -t $IMAGE_NAME:$IMAGE_TAG .
 
-      - name: Push Docker image
-        run: |
-          IMAGE_NAME=us-central1-docker.pkg.dev/ridwan-faturrahman/cvinsight-repo/api-cvinsight-app
-          IMAGE_TAG=${GITHUB_SHA::7}
-          docker push $IMAGE_NAME:latest
-          docker push $IMAGE_NAME:$IMAGE_TAG
+      # - name: Push Docker image
+      #   run: |
+      #     IMAGE_NAME=us-central1-docker.pkg.dev/ridwan-faturrahman/cvinsight-repo/api-cvinsight-app
+      #     IMAGE_TAG=${GITHUB_SHA::7}
+      #     docker push $IMAGE_NAME:latest
+      #     docker push $IMAGE_NAME:$IMAGE_TAG
 
-      - name: VM Pull Docker Image
-        run: |          
-          ssh ${{ secrets.VM_USER }}@${{ secrets.VM_IP }} << 'EOF'
-            gcloud auth configure-docker us-central1-docker.pkg.dev --quiet
-            docker pull us-central1-docker.pkg.dev/ridwan-faturrahman/cvinsight-repo/api-cvinsight-app:latest
-          EOF
+      # - name: VM Pull Docker Image
+      #   run: |          
+      #     ssh ${{ secrets.VM_USER }}@${{ secrets.VM_IP }} << 'EOF'
+      #       gcloud auth configure-docker us-central1-docker.pkg.dev --quiet
+      #       docker pull us-central1-docker.pkg.dev/ridwan-faturrahman/cvinsight-repo/api-cvinsight-app:latest
+      #     EOF
 
       - name: Set Env
         run: |          
@@ -60,6 +60,7 @@ jobs:
             gcloud secrets versions access latest --secret="CVINSIGHT_AI_BACKEND_ENV" > env.backend.prod
             gcloud secrets versions access latest --secret="CVINSIGHT_AI_DATABASE_ENV" > env.db.prod
             gcloud secrets versions access latest --secret="CVINSIGHT_AI_RABBITMQ_ENV" > env.rabbitmq.prod
+            gcloud secrets versions access latest --secret="CVINSIGHT_AI_WORKER_ENV" > env.worker.prod
 
             set -a
             source env.db.prod
@@ -80,6 +81,7 @@ jobs:
             rm -f env.backend.prod
             rm -f env.db.prod
             rm -f env.rabbitmq.prod
+            rm -f env.worker.prod
 
             docker images -f "dangling=true" -q us-central1-docker.pkg.dev/ridwan-faturrahman/cvinsight-repo/api-cvinsight-app | xargs -r docker rmi
           EOF
